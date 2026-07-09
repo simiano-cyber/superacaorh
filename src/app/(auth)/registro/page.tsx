@@ -40,9 +40,13 @@ export default function RegistroPage() {
     });
 
     if (authError) {
-      setError(authError.message || JSON.stringify(authError));
-      setLoading(false);
-      return;
+      const msg = authError.message || "";
+      // Ignorar erros vazios ou de confirmação de e-mail
+      if (msg && msg !== "{}") {
+        setError(msg);
+        setLoading(false);
+        return;
+      }
     }
 
     // Se o usuário foi criado (com ou sem confirmação de email)
@@ -59,6 +63,7 @@ export default function RegistroPage() {
         router.push("/registro/confirmacao");
       }
     } else {
+      // Mesmo sem user no retorno, redireciona (pode ser confirmação pendente)
       router.push("/registro/confirmacao");
     }
   }
