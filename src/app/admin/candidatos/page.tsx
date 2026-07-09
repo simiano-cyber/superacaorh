@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import DashboardHeader from "@/components/layout/DashboardHeader";
 import Card from "@/components/ui/Card";
 import { Search, Filter, MapPin, Mail, Loader2, Briefcase } from "lucide-react";
+import Link from "next/link";
 
 export default function CandidatosPage() {
   const supabase = createClient();
@@ -71,7 +72,8 @@ export default function CandidatosPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filtered.map((candidate) => (
-            <Card key={candidate.id} className="hover:shadow-md transition-shadow">
+            <Link key={candidate.id} href={`/admin/candidatos/${candidate.id}`}>
+            <Card className="hover:shadow-md transition-shadow cursor-pointer">
               <div className="flex items-start gap-3 mb-3">
                 <div className="w-10 h-10 rounded-full bg-navy flex items-center justify-center text-white font-bold text-sm shrink-0">
                   {candidate.profile?.full_name?.split(" ").map((n: string) => n[0]).join("").slice(0, 2) || "?"}
@@ -116,6 +118,7 @@ export default function CandidatosPage() {
                 </div>
               )}
             </Card>
+            </Link>
           ))}
         </div>
       </div>
