@@ -1,8 +1,74 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
 import DashboardHeader from "@/components/layout/DashboardHeader";
 import Card from "@/components/ui/Card";
-import { Briefcase, Users, Clock, CheckCircle, TrendingUp, AlertTriangle } from "lucide-react";
+import { Briefcase, Users, CheckCircle, Clock, Loader2, AlertTriangle } from "lucide-react";
+import Link from "next/link";
 
 export default function ParceiroDashboard() {
+  const supabase = createClient();
+  const [loading, setLoading] = useState(true);
+  const [jobs, setJobs] = useState<any[]>([]);
+  const [stats, setStats] = useState({ open: 0, candidates: 0, hired: 0, avgDays: 0 });
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  async function loadData() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    // Buscar partner_id
+    const { data: partner } = await supabase
+      .from("partners")
+      .select("id")
+      .eq("profile_id", user.id)
+      .single();
+
+    if (!partner) {
+      setLoading(false);
+      return;
+    }
+
+    // Buscar vagas do parceiro
+    const { data: jobsData } = await supabase
+      .from("jobs")
+      .select("*, applications(id, stage)")
+      .eq("partner_id", partner.id)
+      .order("created_at", { ascending: false });
+
+    if (jobsData) {
+      setJobs(jobsData);
+
+      const open = jobsData.filter(j => j.status === "aberta").length;
+      const allApps = jobsData.flatMap(j => j.applications || []);
+      const hired = allApps.filter((a: any) => a.stage === "contratado").length;
+
+      setStats({
+        open,
+        candidates: allApps.length,
+        hired,
+        avgDays: 18, // placeholder - calcular depois
+      });
+    }
+
+    setLoading(false);
+  }
+
+  if (loading) {
+    return (
+      <>
+        <DashboardHeader title="Dashboard" subtitle="Carregando..." />
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-6 h-6 animate-spin text-gray" />
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
       <DashboardHeader title="Dashboard" subtitle="Acompanhe seus processos seletivos" />
@@ -15,7 +81,7 @@ export default function ParceiroDashboard() {
               <Briefcase className="w-6 h-6 text-navy" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-navy">4</p>
+              <p className="text-2xl font-bold text-navy">{stats.open}</p>
               <p className="text-sm text-gray">Vagas abertas</p>
             </div>
           </Card>
@@ -25,7 +91,7 @@ export default function ParceiroDashboard() {
               <Users className="w-6 h-6 text-gold-dark" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-navy">28</p>
+              <p className="text-2xl font-bold text-navy">{stats.candidates}</p>
               <p className="text-sm text-gray">Candidatos em processo</p>
             </div>
           </Card>
@@ -35,8 +101,8 @@ export default function ParceiroDashboard() {
               <CheckCircle className="w-6 h-6 text-green" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-navy">3</p>
-              <p className="text-sm text-gray">Contratações no mês</p>
+              <p className="text-2xl font-bold text-navy">{stats.hired}</p>
+              <p className="text-sm text-gray">Contratações</p>
             </div>
           </Card>
 
@@ -45,77 +111,42 @@ export default function ParceiroDashboard() {
               <Clock className="w-6 h-6 text-navy" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-navy">18 dias</p>
-              <p className="text-sm text-gray">Tempo médio de contratação</p>
+              <p className="text-2xl font-bold text-navy">{stats.avgDays} dias</p>
+              <p className="text-sm text-gray">Tempo médio</p>
             </div>
           </Card>
         </div>
 
-        {/* SLA e Vagas */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Vagas ativas */}
-          <Card>
-            <h2 className="font-bold text-navy mb-4">Vagas em andamento</h2>
-            <div className="space-y-3">
-              {[
-                { title: "Analista de RH Pleno", stage: "Entrevistas", candidates: 8, sla: "No prazo" },
-                { title: "Dev Frontend Senior", stage: "Triagem", candidates: 18, sla: "No prazo" },
-                { title: "Coordenador Financeiro", stage: "Shortlist", candidates: 3, sla: "Atenção" },
-                { title: "Assistente Administrativo", stage: "Entrevista Cliente", candidates: 5, sla: "No prazo" },
-              ].map((job, i) => (
-                <div key={i} className="flex items-center justify-between py-3 border-b border-line last:border-0">
+        {/* Vagas */}
+        <Card>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-bold text-navy">Vagas em andamento</h2>
+            <Link href="/parceiro/vagas" className="text-sm text-gold-dark font-semibold hover:underline">
+              Ver todas
+            </Link>
+          </div>
+
+          {jobs.length === 0 && (
+            <p className="text-sm text-gray py-4">Nenhuma vaga encontrada para sua empresa.</p>
+          )}
+
+          <div className="space-y-3">
+            {jobs.filter(j => j.status === "aberta").slice(0, 5).map((job) => {
+              const appCount = job.applications?.length || 0;
+              return (
+                <div key={job.id} className="flex items-center justify-between py-3 border-b border-line last:border-0">
                   <div>
                     <p className="font-semibold text-navy text-sm">{job.title}</p>
-                    <p className="text-xs text-gray">{job.stage} · {job.candidates} candidatos</p>
+                    <p className="text-xs text-gray">{appCount} candidatos</p>
                   </div>
-                  <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${
-                    job.sla === "No prazo" ? "bg-green/10 text-green" : "bg-gold/10 text-gold-dark"
-                  }`}>
-                    {job.sla === "Atenção" && <AlertTriangle className="w-3 h-3" />}
-                    {job.sla}
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-green/10 text-green">
+                    Aberta
                   </span>
                 </div>
-              ))}
-            </div>
-          </Card>
-
-          {/* Resumo SLA */}
-          <Card>
-            <h2 className="font-bold text-navy mb-4">SLA de Atendimento</h2>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray">Tempo até shortlist</span>
-                <span className="text-sm font-bold text-navy">5 dias</span>
-              </div>
-              <div className="w-full bg-soft rounded-full h-2">
-                <div className="bg-green h-2 rounded-full" style={{ width: "70%" }}></div>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray">Tempo até entrevista</span>
-                <span className="text-sm font-bold text-navy">10 dias</span>
-              </div>
-              <div className="w-full bg-soft rounded-full h-2">
-                <div className="bg-gold h-2 rounded-full" style={{ width: "55%" }}></div>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray">Tempo até contratação</span>
-                <span className="text-sm font-bold text-navy">18 dias</span>
-              </div>
-              <div className="w-full bg-soft rounded-full h-2">
-                <div className="bg-navy h-2 rounded-full" style={{ width: "60%" }}></div>
-              </div>
-
-              <div className="pt-4 border-t border-line">
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-green" />
-                  <span className="text-sm text-green font-semibold">12% mais rápido que o mês anterior</span>
-                </div>
-              </div>
-            </div>
-          </Card>
-        </div>
+              );
+            })}
+          </div>
+        </Card>
       </div>
     </>
   );

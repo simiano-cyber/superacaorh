@@ -1,45 +1,111 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
 import DashboardHeader from "@/components/layout/DashboardHeader";
 import Card from "@/components/ui/Card";
-import { Clock, CheckCircle, XCircle } from "lucide-react";
+import { Clock, CheckCircle, XCircle, Loader2 } from "lucide-react";
+import type { ApplicationStage } from "@/lib/types";
 
-const mockApplications = [
-  { id: 1, title: "Analista de RH Pleno", company: "Tech Corp", stage: "Entrevista RH", date: "03/07/2026", status: "em_andamento" },
-  { id: 2, title: "Assistente Administrativo", company: "Alpha Ltda", stage: "Triagem", date: "01/07/2026", status: "em_andamento" },
-  { id: 3, title: "Coordenador de RH", company: "Inova SA", stage: "Inscrito", date: "28/06/2026", status: "em_andamento" },
-  { id: 4, title: "Gerente de Projetos", company: "Grupo Beta", stage: "Reprovado", date: "15/06/2026", status: "reprovado" },
-  { id: 5, title: "Analista Financeiro", company: "Tech Corp", stage: "Contratado", date: "10/06/2026", status: "aprovado" },
-];
-
-const statusConfig: Record<string, { icon: React.ReactNode; color: string; label: string }> = {
-  em_andamento: { icon: <Clock className="w-4 h-4" />, color: "bg-gold/10 text-gold-dark", label: "Em andamento" },
-  aprovado: { icon: <CheckCircle className="w-4 h-4" />, color: "bg-green/10 text-green", label: "Aprovado" },
-  reprovado: { icon: <XCircle className="w-4 h-4" />, color: "bg-red-100 text-red-600", label: "Encerrado" },
+const stageLabels: Record<ApplicationStage, { label: string; color: string }> = {
+  inscrito: { label: "Inscrito", color: "bg-gray/10 text-gray" },
+  triagem: { label: "Triagem", color: "bg-navy/10 text-navy" },
+  entrevista_rh: { label: "Entrevista RH", color: "bg-gold/10 text-gold-dark" },
+  entrevista_cliente: { label: "Entrevista Cliente", color: "bg-gold/20 text-gold-dark" },
+  teste_tecnico: { label: "Teste Técnico", color: "bg-navy/10 text-navy" },
+  aprovado: { label: "Aprovado", color: "bg-green/10 text-green" },
+  reprovado: { label: "Não selecionado", color: "bg-red-100 text-red-600" },
+  contratado: { label: "Contratado", color: "bg-green/20 text-green" },
+  desistente: { label: "Desistente", color: "bg-gray/10 text-gray" },
 };
 
 export default function CandidaturasPage() {
+  const supabase = createClient();
+  const [applications, setApplications] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadApplications();
+  }, []);
+
+  async function loadApplications() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    // Buscar candidato
+    const { data: candidate } = await supabase
+      .from("candidates")
+      .select("id")
+      .eq("profile_id", user.id)
+      .single();
+
+    if (!candidate) {
+      setLoading(false);
+      return;
+    }
+
+    // Buscar candidaturas
+    const { data } = await supabase
+      .from("applications")
+      .select("*, job:jobs(title, city, contract_type, partner:partners(company_name))")
+      .eq("candidate_id", candidate.id)
+      .order("applied_at", { ascending: false });
+
+    if (data) setApplications(data);
+    setLoading(false);
+  }
+
+  function getStatusIcon(stage: ApplicationStage) {
+    if (stage === "contratado" || stage === "aprovado") return <CheckCircle className="w-4 h-4" />;
+    if (stage === "reprovado") return <XCircle className="w-4 h-4" />;
+    return <Clock className="w-4 h-4" />;
+  }
+
+  if (loading) {
+    return (
+      <>
+        <DashboardHeader title="Minhas Candidaturas" subtitle="Carregando..." />
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-6 h-6 animate-spin text-gray" />
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
       <DashboardHeader title="Minhas Candidaturas" subtitle="Acompanhe seus processos seletivos" />
 
       <div className="p-6 space-y-4">
-        {mockApplications.map((app) => {
-          const config = statusConfig[app.status];
+        {applications.length === 0 && (
+          <Card className="text-center py-12">
+            <p className="text-gray">Você ainda não se candidatou a nenhuma vaga.</p>
+          </Card>
+        )}
+
+        {applications.map((app) => {
+          const stageInfo = stageLabels[app.stage as ApplicationStage] || { label: app.stage, color: "bg-gray/10 text-gray" };
           return (
             <Card key={app.id} className="hover:shadow-md transition-shadow">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <h3 className="font-bold text-navy">{app.title}</h3>
-                  <p className="text-sm text-gray">{app.company}</p>
+                  <h3 className="font-bold text-navy">{app.job?.title || "Vaga"}</h3>
+                  <p className="text-sm text-gray">
+                    {app.job?.partner?.company_name || ""}
+                    {app.job?.city ? ` · ${app.job.city}` : ""}
+                    {app.job?.contract_type ? ` · ${app.job.contract_type}` : ""}
+                  </p>
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="text-right">
-                    <p className="text-sm font-semibold text-navy">{app.stage}</p>
-                    <p className="text-xs text-gray">{app.date}</p>
+                    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${stageInfo.color}`}>
+                      {getStatusIcon(app.stage)}
+                      {stageInfo.label}
+                    </span>
+                    <p className="text-xs text-gray mt-1">
+                      {new Date(app.applied_at).toLocaleDateString("pt-BR")}
+                    </p>
                   </div>
-                  <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${config.color}`}>
-                    {config.icon}
-                    {config.label}
-                  </span>
                 </div>
               </div>
             </Card>

@@ -1,35 +1,49 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
 import DashboardHeader from "@/components/layout/DashboardHeader";
 import Card from "@/components/ui/Card";
-import { Search, Filter, Star, MapPin, Mail } from "lucide-react";
-
-const mockCandidates = [
-  { id: 1, name: "Maria Silva", role: "Analista de RH", city: "São Paulo, SP", email: "maria@email.com", skills: ["RH", "Recrutamento", "Excel"], rating: 4, stage: "entrevista_rh" },
-  { id: 2, name: "João Santos", role: "Dev Frontend", city: "Remoto", email: "joao@email.com", skills: ["React", "TypeScript", "CSS"], rating: 5, stage: "entrevista_cliente" },
-  { id: 3, name: "Ana Oliveira", role: "Coordenadora Financeira", city: "Campinas, SP", email: "ana@email.com", skills: ["Finanças", "SAP", "Gestão"], rating: 3, stage: "triagem" },
-  { id: 4, name: "Pedro Costa", role: "Assistente Adm", city: "São Paulo, SP", email: "pedro@email.com", skills: ["Office", "Organização"], rating: 4, stage: "inscrito" },
-  { id: 5, name: "Carla Dias", role: "Gerente de Projetos", city: "São Paulo, SP", email: "carla@email.com", skills: ["Scrum", "PMI", "Liderança"], rating: 5, stage: "aprovado" },
-];
-
-const stageLabels: Record<string, { label: string; color: string }> = {
-  inscrito: { label: "Inscrito", color: "bg-gray/10 text-gray" },
-  triagem: { label: "Triagem", color: "bg-navy/10 text-navy" },
-  entrevista_rh: { label: "Entrevista RH", color: "bg-gold/10 text-gold-dark" },
-  entrevista_cliente: { label: "Entrevista Cliente", color: "bg-gold/20 text-gold-dark" },
-  aprovado: { label: "Aprovado", color: "bg-green/10 text-green" },
-};
+import { Search, Filter, MapPin, Mail, Loader2, Briefcase } from "lucide-react";
 
 export default function CandidatosPage() {
+  const supabase = createClient();
+  const [candidates, setCandidates] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    loadCandidates();
+  }, []);
+
+  async function loadCandidates() {
+    const { data } = await supabase
+      .from("candidates")
+      .select(`
+        *,
+        profile:profiles(full_name, email, phone),
+        skills:candidate_skills(skill_name)
+      `)
+      .order("created_at", { ascending: false });
+
+    if (data) setCandidates(data);
+    setLoading(false);
+  }
+
+  const filtered = candidates.filter((c) => {
+    const name = c.profile?.full_name?.toLowerCase() || "";
+    const email = c.profile?.email?.toLowerCase() || "";
+    const city = c.city?.toLowerCase() || "";
+    const skills = c.skills?.map((s: any) => s.skill_name.toLowerCase()).join(" ") || "";
+    const q = search.toLowerCase();
+    return name.includes(q) || email.includes(q) || city.includes(q) || skills.includes(q);
+  });
 
   return (
     <>
       <DashboardHeader title="Candidatos" subtitle="Base de talentos cadastrados" />
 
       <div className="p-6 space-y-4">
-        {/* Toolbar */}
         <div className="flex gap-3">
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray" />
@@ -41,60 +55,66 @@ export default function CandidatosPage() {
               className="w-full h-10 pl-10 pr-4 rounded-lg border border-line bg-white text-sm focus:outline-none focus:ring-2 focus:ring-gold/40"
             />
           </div>
-          <button className="h-10 px-4 rounded-lg border border-line bg-white flex items-center gap-2 text-sm text-gray hover:bg-soft transition-colors cursor-pointer">
-            <Filter className="w-4 h-4" />
-            Filtros
-          </button>
         </div>
 
-        {/* Grid de candidatos */}
+        {loading && (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-6 h-6 animate-spin text-gray" />
+          </div>
+        )}
+
+        {!loading && candidates.length === 0 && (
+          <Card className="text-center py-12">
+            <p className="text-gray">Nenhum candidato cadastrado ainda.</p>
+          </Card>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {mockCandidates.map((candidate) => (
-            <Card key={candidate.id} className="hover:shadow-md transition-shadow cursor-pointer">
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-navy flex items-center justify-center text-white font-bold text-sm">
-                    {candidate.name.split(" ").map(n => n[0]).join("")}
-                  </div>
-                  <div>
-                    <p className="font-bold text-navy text-sm">{candidate.name}</p>
-                    <p className="text-xs text-gray">{candidate.role}</p>
-                  </div>
+          {filtered.map((candidate) => (
+            <Card key={candidate.id} className="hover:shadow-md transition-shadow">
+              <div className="flex items-start gap-3 mb-3">
+                <div className="w-10 h-10 rounded-full bg-navy flex items-center justify-center text-white font-bold text-sm shrink-0">
+                  {candidate.profile?.full_name?.split(" ").map((n: string) => n[0]).join("").slice(0, 2) || "?"}
                 </div>
-                <div className="flex items-center gap-0.5">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Star
-                      key={i}
-                      className={`w-3.5 h-3.5 ${i < candidate.rating ? "text-gold fill-gold" : "text-gray/30"}`}
-                    />
-                  ))}
+                <div>
+                  <p className="font-bold text-navy text-sm">{candidate.profile?.full_name || "Sem nome"}</p>
+                  <p className="text-xs text-gray">{candidate.objective || "Sem objetivo definido"}</p>
                 </div>
               </div>
 
-              <div className="space-y-2 mb-3">
-                <div className="flex items-center gap-2 text-xs text-gray">
-                  <MapPin className="w-3 h-3" />
-                  {candidate.city}
-                </div>
+              <div className="space-y-1.5 mb-3">
+                {candidate.city && (
+                  <div className="flex items-center gap-2 text-xs text-gray">
+                    <MapPin className="w-3 h-3" />
+                    {candidate.city}{candidate.state ? `, ${candidate.state}` : ""}
+                  </div>
+                )}
                 <div className="flex items-center gap-2 text-xs text-gray">
                   <Mail className="w-3 h-3" />
-                  {candidate.email}
+                  {candidate.profile?.email}
                 </div>
+                {candidate.salary_expectation && (
+                  <div className="flex items-center gap-2 text-xs text-gray">
+                    <Briefcase className="w-3 h-3" />
+                    R$ {Number(candidate.salary_expectation).toLocaleString("pt-BR")}
+                  </div>
+                )}
               </div>
 
-              <div className="flex flex-wrap gap-1.5 mb-3">
-                {candidate.skills.map((skill) => (
-                  <span key={skill} className="px-2 py-0.5 bg-soft rounded text-xs font-medium text-navy">
-                    {skill}
-                  </span>
-                ))}
-              </div>
-
-              <div className="pt-3 border-t border-line">
-                <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-bold ${stageLabels[candidate.stage]?.color}`}>
-                  {stageLabels[candidate.stage]?.label}
-                </span>
-              </div>
+              {candidate.skills && candidate.skills.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {candidate.skills.slice(0, 5).map((skill: any) => (
+                    <span key={skill.skill_name} className="px-2 py-0.5 bg-soft rounded text-xs font-medium text-navy">
+                      {skill.skill_name}
+                    </span>
+                  ))}
+                  {candidate.skills.length > 5 && (
+                    <span className="px-2 py-0.5 bg-soft rounded text-xs text-gray">
+                      +{candidate.skills.length - 5}
+                    </span>
+                  )}
+                </div>
+              )}
             </Card>
           ))}
         </div>
