@@ -37,9 +37,15 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // Rotas públicas que começam com paths protegidos
+  const publicExceptions = ["/admin-setup"];
+  const isException = publicExceptions.some((path) =>
+    request.nextUrl.pathname.startsWith(path)
+  );
+
   // Rotas protegidas
   const protectedPaths = ["/admin", "/candidato", "/parceiro"];
-  const isProtected = protectedPaths.some((path) =>
+  const isProtected = !isException && protectedPaths.some((path) =>
     request.nextUrl.pathname.startsWith(path)
   );
 
