@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { Search, Users, FileText, RefreshCw, ArrowRight } from "lucide-react";
+import WhatsAppButton from "@/components/WhatsAppButton";
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-white">
+      <WhatsAppButton />
       {/* Header */}
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-line">
         <nav className="max-w-6xl mx-auto px-4 h-20 flex items-center justify-between">
@@ -20,6 +22,7 @@ export default function Home() {
             <a href="#servicos" className="hover:text-gold-dark transition-colors">Serviços</a>
             <a href="#empresas" className="hover:text-gold-dark transition-colors">Para empresas</a>
             <a href="#candidatos" className="hover:text-gold-dark transition-colors">Para candidatos</a>
+            <Link href="/vagas" className="hover:text-gold-dark transition-colors">Vagas</Link>
             <a href="#contato" className="hover:text-gold-dark transition-colors">Contato</a>
           </div>
 
