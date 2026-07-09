@@ -51,6 +51,13 @@ export default function RegistroPage() {
 
     // Se o usuário foi criado (com ou sem confirmação de email)
     if (data?.user) {
+      // Enviar e-mail de boas-vindas
+      fetch("/api/notifications/welcome", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, name: fullName, role }),
+      }).catch(() => {});
+
       // Se a sessão já existe, login direto
       if (data.session) {
         if (role === "parceiro") {
