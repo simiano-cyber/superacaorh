@@ -179,6 +179,9 @@ export default function VagaDetalhePage() {
           <Link href="/admin/vagas">
             <Button variant="ghost" size="sm"><ArrowLeft className="w-4 h-4" /> Voltar</Button>
           </Link>
+          <Link href={`/admin/vagas/${id}/editar`}>
+            <Button variant="ghost" size="sm"><Edit className="w-4 h-4" /> Editar</Button>
+          </Link>
           <div className="flex-1" />
           {job.status === "aberta" && (
             <Button variant="ghost" size="sm" onClick={() => updateJobStatus("pausada")}>
