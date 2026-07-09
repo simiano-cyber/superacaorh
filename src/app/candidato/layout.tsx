@@ -21,7 +21,7 @@ export default function CandidatoLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex min-h-screen bg-soft">
       <Sidebar items={candidatoNav} portalName="Portal do Candidato" />
-      <main className="flex-1 ml-64">
+      <main className="flex-1 lg:ml-64">
         {children}
       </main>
     </div>

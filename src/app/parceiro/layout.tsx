@@ -21,7 +21,7 @@ export default function ParceiroLayout({ children }: { children: React.ReactNode
   return (
     <div className="flex min-h-screen bg-soft">
       <Sidebar items={parceiroNav} portalName="Portal do Parceiro" />
-      <main className="flex-1 ml-64">
+      <main className="flex-1 lg:ml-64">
         {children}
       </main>
     </div>

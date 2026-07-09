@@ -85,9 +85,13 @@ export default function CandidaturasPage() {
 
         {applications.map((app) => {
           const stageInfo = stageLabels[app.stage as ApplicationStage] || { label: app.stage, color: "bg-gray/10 text-gray" };
+          const stageOrder = ["inscrito", "triagem", "entrevista_rh", "entrevista_cliente", "teste_tecnico", "aprovado", "contratado"];
+          const currentIndex = stageOrder.indexOf(app.stage);
+          const progress = app.stage === "reprovado" ? 0 : Math.round(((currentIndex + 1) / stageOrder.length) * 100);
+
           return (
             <Card key={app.id} className="hover:shadow-md transition-shadow">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
                 <div>
                   <h3 className="font-bold text-navy">{app.job?.title || "Vaga"}</h3>
                   <p className="text-sm text-gray">
@@ -97,17 +101,33 @@ export default function CandidaturasPage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-4">
-                  <div className="text-right">
-                    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${stageInfo.color}`}>
-                      {getStatusIcon(app.stage)}
-                      {stageInfo.label}
-                    </span>
-                    <p className="text-xs text-gray mt-1">
-                      {new Date(app.applied_at).toLocaleDateString("pt-BR")}
-                    </p>
-                  </div>
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${stageInfo.color}`}>
+                    {getStatusIcon(app.stage)}
+                    {stageInfo.label}
+                  </span>
                 </div>
               </div>
+              {/* Barra de progresso */}
+              {app.stage !== "reprovado" && app.stage !== "desistente" && (
+                <div className="mt-2">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs text-gray">Progresso</span>
+                    <span className="text-xs font-bold text-navy">{progress}%</span>
+                  </div>
+                  <div className="w-full bg-soft rounded-full h-2">
+                    <div
+                      className="h-2 rounded-full transition-all duration-500 bg-gradient-to-r from-gold to-green"
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                  <div className="flex justify-between mt-1.5">
+                    {stageOrder.map((s, i) => (
+                      <div key={s} className={`w-2 h-2 rounded-full ${i <= currentIndex ? "bg-gold" : "bg-line"}`} title={stageLabels[s as ApplicationStage]?.label} />
+                    ))}
+                  </div>
+                </div>
+              )}
+              <p className="text-xs text-gray mt-2">Candidatura em {new Date(app.applied_at).toLocaleDateString("pt-BR")}</p>
             </Card>
           );
         })}

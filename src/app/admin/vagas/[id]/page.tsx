@@ -66,7 +66,10 @@ export default function VagaDetalhePage() {
     setLoading(false);
   }
 
-  async function moveCandidate(applicationId: string, newStage: ApplicationStage) {
+  const [noteModal, setNoteModal] = useState<{ appId: string; action: "advance" | "reject"; nextStage?: ApplicationStage } | null>(null);
+  const [note, setNote] = useState("");
+
+  async function moveCandidate(applicationId: string, newStage: ApplicationStage, description?: string) {
     setUpdating(applicationId);
 
     const { error } = await supabase
@@ -81,6 +84,7 @@ export default function VagaDetalhePage() {
         application_id: applicationId,
         stage: newStage,
         title: `Movido para ${stages.find(s => s.key === newStage)?.label || newStage}`,
+        description: description || null,
         created_by: user?.id,
       });
 
@@ -90,9 +94,11 @@ export default function VagaDetalhePage() {
       );
     }
     setUpdating(null);
+    setNoteModal(null);
+    setNote("");
   }
 
-  async function rejectCandidate(applicationId: string) {
+  async function rejectCandidate(applicationId: string, description?: string) {
     setUpdating(applicationId);
     await supabase
       .from("applications")
@@ -104,11 +110,14 @@ export default function VagaDetalhePage() {
       application_id: applicationId,
       stage: "reprovado",
       title: "Reprovado no processo",
+      description: description || null,
       created_by: user?.id,
     });
 
     setApplications(apps => apps.filter(a => a.id !== applicationId));
     setUpdating(null);
+    setNoteModal(null);
+    setNote("");
   }
 
   async function updateJobStatus(status: "aberta" | "pausada" | "encerrada") {
@@ -247,7 +256,7 @@ export default function VagaDetalhePage() {
                           <div className="flex gap-2 mt-3 pt-3 border-t border-line">
                             {nextStage && (
                               <button
-                                onClick={() => moveCandidate(app.id, nextStage)}
+                                onClick={() => setNoteModal({ appId: app.id, action: "advance", nextStage })}
                                 disabled={updating === app.id}
                                 className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded text-xs font-bold bg-navy/5 text-navy hover:bg-navy/10 transition-colors cursor-pointer disabled:opacity-50"
                               >
@@ -255,7 +264,7 @@ export default function VagaDetalhePage() {
                               </button>
                             )}
                             <button
-                              onClick={() => rejectCandidate(app.id)}
+                              onClick={() => setNoteModal({ appId: app.id, action: "reject" })}
                               disabled={updating === app.id}
                               className="px-2 py-1.5 rounded text-xs font-bold bg-red-50 text-red-600 hover:bg-red-100 transition-colors cursor-pointer disabled:opacity-50"
                             >
@@ -272,6 +281,54 @@ export default function VagaDetalhePage() {
           </div>
         </div>
       </div>
+
+      {/* Modal de notas */}
+      {noteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => { setNoteModal(null); setNote(""); }} />
+          <div className="relative bg-white rounded-xl shadow-xl p-6 w-full max-w-md">
+            <h3 className="font-bold text-navy text-lg mb-2">
+              {noteModal.action === "advance" ? "Avançar candidato" : "Reprovar candidato"}
+            </h3>
+            <p className="text-sm text-gray mb-4">
+              {noteModal.action === "advance"
+                ? `Mover para: ${stages.find(s => s.key === noteModal.nextStage)?.label}`
+                : "O candidato será removido do processo."}
+            </p>
+            <textarea
+              placeholder="Observação (opcional)..."
+              rows={3}
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              className="w-full px-4 py-3 rounded-lg border border-line bg-white text-sm focus:outline-none focus:ring-2 focus:ring-gold/40 resize-vertical mb-4"
+            />
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => { setNoteModal(null); setNote(""); }}
+                className="px-4 py-2 rounded-lg text-sm font-bold text-gray hover:bg-soft transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+              {noteModal.action === "advance" && noteModal.nextStage && (
+                <button
+                  onClick={() => moveCandidate(noteModal.appId, noteModal.nextStage!, note)}
+                  className="px-4 py-2 rounded-lg text-sm font-bold bg-navy text-white hover:bg-navy-deep transition-colors cursor-pointer"
+                >
+                  Confirmar
+                </button>
+              )}
+              {noteModal.action === "reject" && (
+                <button
+                  onClick={() => rejectCandidate(noteModal.appId, note)}
+                  className="px-4 py-2 rounded-lg text-sm font-bold bg-red-600 text-white hover:bg-red-700 transition-colors cursor-pointer"
+                >
+                  Reprovar
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
