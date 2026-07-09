@@ -15,6 +15,11 @@ export default function CandidatoDetalhePage() {
   const [candidate, setCandidate] = useState<any>(null);
   const [applications, setApplications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tags, setTags] = useState<any[]>([]);
+  const [allTags, setAllTags] = useState<any[]>([]);
+  const [comments, setComments] = useState<any[]>([]);
+  const [newComment, setNewComment] = useState("");
+  const [savingComment, setSavingComment] = useState(false);
 
   useEffect(() => { loadData(); }, [id]);
 
@@ -33,15 +38,58 @@ export default function CandidatoDetalhePage() {
 
     if (data) setCandidate(data);
 
-    // Candidaturas desse candidato
+    // Candidaturas
     const { data: apps } = await supabase
       .from("applications")
       .select("*, job:jobs(title, status)")
       .eq("candidate_id", id)
       .order("applied_at", { ascending: false });
-
     if (apps) setApplications(apps);
+
+    // Tags do candidato
+    const { data: candidateTags } = await supabase
+      .from("candidate_tags")
+      .select("*, tag:tags(*)")
+      .eq("candidate_id", id);
+    if (candidateTags) setTags(candidateTags);
+
+    // Todas as tags
+    const { data: at } = await supabase.from("tags").select("*").order("name");
+    if (at) setAllTags(at);
+
+    // Comentários
+    const { data: comms } = await supabase
+      .from("internal_comments")
+      .select("*, author:profiles(full_name)")
+      .eq("candidate_id", id)
+      .order("created_at", { ascending: false });
+    if (comms) setComments(comms);
+
     setLoading(false);
+  }
+
+  async function addTag(tagId: string) {
+    await supabase.from("candidate_tags").insert({ candidate_id: id, tag_id: tagId });
+    loadData();
+  }
+
+  async function removeTag(candidateTagId: string) {
+    await supabase.from("candidate_tags").delete().eq("id", candidateTagId);
+    setTags(tags.filter(t => t.id !== candidateTagId));
+  }
+
+  async function addComment() {
+    if (!newComment.trim()) return;
+    setSavingComment(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    await supabase.from("internal_comments").insert({
+      candidate_id: id,
+      author_id: user?.id,
+      content: newComment.trim(),
+    });
+    setNewComment("");
+    setSavingComment(false);
+    loadData();
   }
 
   if (loading) {
@@ -154,6 +202,65 @@ export default function CandidatoDetalhePage() {
                 <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-gold/10 text-gold-dark">
                   {stageLabels[app.stage] || app.stage}
                 </span>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        {/* Tags */}
+        <Card>
+          <h3 className="font-bold text-navy mb-3">Tags</h3>
+          <div className="flex flex-wrap gap-2 mb-3">
+            {tags.map((ct) => (
+              <span key={ct.id} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold text-white" style={{ background: ct.tag?.color || "#142033" }}>
+                {ct.tag?.name}
+                <button onClick={() => removeTag(ct.id)} className="hover:opacity-70 cursor-pointer">×</button>
+              </span>
+            ))}
+          </div>
+          <select
+            onChange={(e) => { if (e.target.value) { addTag(e.target.value); e.target.value = ""; } }}
+            className="h-9 px-3 rounded-lg border border-line bg-white text-sm focus:outline-none focus:ring-2 focus:ring-gold/40"
+          >
+            <option value="">+ Adicionar tag...</option>
+            {allTags.filter(t => !tags.some(ct => ct.tag_id === t.id)).map((tag) => (
+              <option key={tag.id} value={tag.id}>{tag.name}</option>
+            ))}
+          </select>
+        </Card>
+
+        {/* Comentários internos */}
+        <Card>
+          <h3 className="font-bold text-navy mb-3">Comentários internos</h3>
+          <p className="text-xs text-gray mb-4">Visíveis apenas para a equipe SuperAção RH.</p>
+
+          <div className="flex gap-2 mb-4">
+            <input
+              type="text"
+              placeholder="Adicionar comentário..."
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addComment()}
+              className="flex-1 h-10 px-4 rounded-lg border border-line bg-white text-sm focus:outline-none focus:ring-2 focus:ring-gold/40"
+            />
+            <button
+              onClick={addComment}
+              disabled={savingComment || !newComment.trim()}
+              className="h-10 px-4 rounded-lg bg-navy text-white text-sm font-bold hover:bg-navy-deep transition-colors cursor-pointer disabled:opacity-50"
+            >
+              Enviar
+            </button>
+          </div>
+
+          {comments.length === 0 && <p className="text-sm text-gray">Nenhum comentário ainda.</p>}
+          <div className="space-y-3">
+            {comments.map((comment) => (
+              <div key={comment.id} className="p-3 bg-soft rounded-lg">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-bold text-navy">{comment.author?.full_name || "Equipe"}</span>
+                  <span className="text-xs text-gray">{new Date(comment.created_at).toLocaleString("pt-BR")}</span>
+                </div>
+                <p className="text-sm text-gray">{comment.content}</p>
               </div>
             ))}
           </div>

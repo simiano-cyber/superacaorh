@@ -43,7 +43,12 @@ export default function RegistroPage() {
       const msg = authError.message || "";
       // Ignorar erros vazios ou de confirmação de e-mail
       if (msg && msg !== "{}") {
-        setError(msg);
+        // Mensagem amigável para e-mail duplicado
+        if (msg.includes("already registered") || msg.includes("already been registered")) {
+          setError("Este e-mail já está cadastrado. Tente fazer login ou recuperar sua senha.");
+        } else {
+          setError(msg);
+        }
         setLoading(false);
         return;
       }
