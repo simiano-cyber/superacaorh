@@ -88,6 +88,13 @@ export default function VagaDetalhePage() {
         created_by: user?.id,
       });
 
+      // Enviar notificação por e-mail
+      fetch("/api/notifications/stage-change", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ applicationId, newStage, note: description }),
+      }).catch(() => {}); // Não bloquear se falhar
+
       // Atualizar lista
       setApplications(apps =>
         apps.map(a => a.id === applicationId ? { ...a, stage: newStage } : a)
@@ -113,6 +120,13 @@ export default function VagaDetalhePage() {
       description: description || null,
       created_by: user?.id,
     });
+
+    // Enviar notificação por e-mail
+    fetch("/api/notifications/stage-change", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ applicationId, newStage: "reprovado", note: description }),
+    }).catch(() => {});
 
     setApplications(apps => apps.filter(a => a.id !== applicationId));
     setUpdating(null);

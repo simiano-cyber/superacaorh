@@ -77,6 +77,13 @@ export default function VagasCandidatoPage() {
 
     if (!error) {
       setAppliedJobs(new Set([...appliedJobs, jobId]));
+
+      // Enviar e-mail de confirmação
+      fetch("/api/notifications/application-confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobId }),
+      }).catch(() => {});
     }
     setApplying(null);
   }
