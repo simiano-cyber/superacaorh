@@ -44,7 +44,7 @@ export default function AdminSetupPage() {
     });
 
     if (authError) {
-      setError(authError.message);
+      setError(authError.message || JSON.stringify(authError));
       setLoading(false);
       return;
     }

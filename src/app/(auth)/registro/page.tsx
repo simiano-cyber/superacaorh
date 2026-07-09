@@ -27,7 +27,7 @@ export default function RegistroPage() {
     setLoading(true);
     setError("");
 
-    const { error: authError } = await supabase.auth.signUp({
+    const { data, error: authError } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -40,12 +40,27 @@ export default function RegistroPage() {
     });
 
     if (authError) {
-      setError(authError.message);
+      setError(authError.message || JSON.stringify(authError));
       setLoading(false);
       return;
     }
 
-    router.push("/registro/confirmacao");
+    // Se o usuário foi criado (com ou sem confirmação de email)
+    if (data?.user) {
+      // Se a sessão já existe, login direto
+      if (data.session) {
+        if (role === "parceiro") {
+          router.push("/parceiro");
+        } else {
+          router.push("/candidato");
+        }
+      } else {
+        // Precisa confirmar email
+        router.push("/registro/confirmacao");
+      }
+    } else {
+      router.push("/registro/confirmacao");
+    }
   }
 
   if (step === "role") {
