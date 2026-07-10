@@ -74,6 +74,15 @@ export default function VagasPage() {
     }
   }
 
+  // Fechar menu ao clicar fora
+  useEffect(() => {
+    function handleClickOutside() { setOpenMenu(null); }
+    if (openMenu) {
+      document.addEventListener("click", handleClickOutside);
+      return () => document.removeEventListener("click", handleClickOutside);
+    }
+  }, [openMenu]);
+
   async function loadData() {
     setLoading(true);
     const { data, error } = await supabase
@@ -238,35 +247,36 @@ export default function VagasPage() {
                       </td>
                       <td className="p-3 relative">
                         <button onClick={(e) => { e.stopPropagation(); setOpenMenu(openMenu === job.id ? null : job.id); }}
-                          className="w-8 h-8 rounded-lg hover:bg-soft flex items-center justify-center cursor-pointer">
+                          className="w-9 h-9 rounded-lg hover:bg-soft flex items-center justify-center cursor-pointer border border-transparent hover:border-line transition-colors">
                           <MoreVertical className="w-4 h-4 text-gray" />
                         </button>
                         {openMenu === job.id && (
-                          <div className="absolute right-3 top-10 z-20 bg-white border border-line rounded-lg shadow-lg py-1 w-40">
-                            <button onClick={() => quickAction(job.id, "edit")} className="w-full px-4 py-2 text-left text-sm text-navy hover:bg-soft flex items-center gap-2 cursor-pointer">
-                              <Edit className="w-3.5 h-3.5" /> Editar
+                          <div className="absolute right-8 top-0 z-30 bg-white border border-line rounded-xl shadow-xl py-2 w-48 animate-in fade-in">
+                            <button onClick={(e) => { e.stopPropagation(); quickAction(job.id, "edit"); }} className="w-full px-4 py-2.5 text-left text-sm text-navy hover:bg-soft flex items-center gap-3 cursor-pointer">
+                              <Edit className="w-4 h-4 text-gray" /> Editar vaga
                             </button>
-                            <button onClick={() => quickAction(job.id, "duplicate")} className="w-full px-4 py-2 text-left text-sm text-navy hover:bg-soft flex items-center gap-2 cursor-pointer">
-                              <Copy className="w-3.5 h-3.5" /> Duplicar
+                            <button onClick={(e) => { e.stopPropagation(); quickAction(job.id, "duplicate"); }} className="w-full px-4 py-2.5 text-left text-sm text-navy hover:bg-soft flex items-center gap-3 cursor-pointer">
+                              <Copy className="w-4 h-4 text-gray" /> Duplicar vaga
                             </button>
+                            <div className="border-t border-line my-1.5" />
                             {job.status === "aberta" && (
-                              <button onClick={() => quickAction(job.id, "pause")} className="w-full px-4 py-2 text-left text-sm text-navy hover:bg-soft flex items-center gap-2 cursor-pointer">
-                                <Pause className="w-3.5 h-3.5" /> Pausar
+                              <button onClick={(e) => { e.stopPropagation(); quickAction(job.id, "pause"); }} className="w-full px-4 py-2.5 text-left text-sm text-navy hover:bg-soft flex items-center gap-3 cursor-pointer">
+                                <Pause className="w-4 h-4 text-gray" /> Pausar
                               </button>
                             )}
                             {job.status === "pausada" && (
-                              <button onClick={() => quickAction(job.id, "resume")} className="w-full px-4 py-2 text-left text-sm text-navy hover:bg-soft flex items-center gap-2 cursor-pointer">
-                                <Play className="w-3.5 h-3.5" /> Reabrir
+                              <button onClick={(e) => { e.stopPropagation(); quickAction(job.id, "resume"); }} className="w-full px-4 py-2.5 text-left text-sm text-navy hover:bg-soft flex items-center gap-3 cursor-pointer">
+                                <Play className="w-4 h-4 text-gray" /> Reabrir
                               </button>
                             )}
                             {job.status !== "encerrada" && (
-                              <button onClick={() => quickAction(job.id, "close")} className="w-full px-4 py-2 text-left text-sm text-gold-dark hover:bg-soft flex items-center gap-2 cursor-pointer">
-                                <XCircle className="w-3.5 h-3.5" /> Encerrar
+                              <button onClick={(e) => { e.stopPropagation(); quickAction(job.id, "close"); }} className="w-full px-4 py-2.5 text-left text-sm text-gold-dark hover:bg-gold/5 flex items-center gap-3 cursor-pointer">
+                                <XCircle className="w-4 h-4 text-gold-dark" /> Encerrar
                               </button>
                             )}
-                            <div className="border-t border-line my-1" />
-                            <button onClick={() => quickAction(job.id, "delete")} className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 cursor-pointer">
-                              <Trash2 className="w-3.5 h-3.5" /> Excluir
+                            <div className="border-t border-line my-1.5" />
+                            <button onClick={(e) => { e.stopPropagation(); quickAction(job.id, "delete"); }} className="w-full px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-3 cursor-pointer">
+                              <Trash2 className="w-4 h-4" /> Excluir
                             </button>
                           </div>
                         )}
