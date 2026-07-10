@@ -229,39 +229,67 @@ export default function Home() {
 
       {/* Contato */}
       <section id="contato" className="py-20 bg-gradient-to-b from-white to-soft">
-        <div className="max-w-6xl mx-auto px-4 grid md:grid-cols-2 gap-12">
-          <div>
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="text-center max-w-2xl mx-auto mb-12">
             <p className="text-xs font-black text-gold-dark uppercase tracking-wide mb-4">Contato</p>
             <h2 className="text-3xl md:text-4xl font-bold text-navy leading-tight mb-4">
               Vamos conversar sobre o próximo passo da sua empresa?
             </h2>
-            <p className="text-gray mb-6">
+            <p className="text-gray">
               Fale com a SuperAção RH para entender como podemos apoiar sua necessidade de
               recrutamento e gestão de pessoas.
             </p>
-            <ul className="space-y-3">
-              <li className="text-sm"><strong>WhatsApp:</strong> <a href="https://wa.me/5500000000000" className="font-bold hover:text-gold-dark">(00) 00000-0000</a></li>
-              <li className="text-sm"><strong>E-mail:</strong> <a href="mailto:contato@superacaorh.com.br" className="font-bold hover:text-gold-dark">contato@superacaorh.com.br</a></li>
-              <li className="text-sm"><strong>Localização:</strong> São Paulo, SP</li>
-            </ul>
           </div>
-          <form className="bg-white rounded-xl border border-line shadow-lg p-6 space-y-4">
-            <div>
-              <label htmlFor="nome" className="text-sm font-bold text-navy block mb-1.5">Nome</label>
-              <input id="nome" type="text" className="w-full h-11 px-4 rounded-lg border border-line text-sm focus:outline-none focus:ring-2 focus:ring-gold/40" />
+
+          <div className="grid sm:grid-cols-2 gap-6 max-w-3xl mx-auto">
+            {/* Comercial */}
+            <div className="bg-white rounded-xl border border-line shadow-sm p-6 text-center hover:shadow-md transition-shadow">
+              <div className="w-14 h-14 rounded-full bg-navy/5 flex items-center justify-center mx-auto mb-4">
+                <svg viewBox="0 0 24 24" className="w-7 h-7 fill-navy"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+              </div>
+              <h3 className="font-bold text-navy text-lg mb-1">Comercial</h3>
+              <p className="text-sm text-gray mb-4">Conheça nossos serviços e planos</p>
+              <div className="space-y-3">
+                <a
+                  href="https://wa.me/5511994167331?text=Olá! Gostaria de informações sobre os serviços da SuperAção RH."
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 h-11 rounded-lg bg-[#25D366] text-white font-bold text-sm hover:bg-[#20BA5C] transition-all"
+                >
+                  <svg viewBox="0 0 24 24" className="w-5 h-5 fill-white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.955 9.955 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2z"/></svg>
+                  (11) 99416-7331
+                </a>
+                <a href="mailto:comercial@superacaorh.com.br" className="flex items-center justify-center gap-2 h-11 rounded-lg border border-navy text-navy font-bold text-sm hover:bg-navy hover:text-white transition-all">
+                  comercial@superacaorh.com.br
+                </a>
+              </div>
             </div>
-            <div>
-              <label htmlFor="email-contato" className="text-sm font-bold text-navy block mb-1.5">E-mail</label>
-              <input id="email-contato" type="email" className="w-full h-11 px-4 rounded-lg border border-line text-sm focus:outline-none focus:ring-2 focus:ring-gold/40" />
+
+            {/* Vagas / Contratação */}
+            <div className="bg-white rounded-xl border border-line shadow-sm p-6 text-center hover:shadow-md transition-shadow">
+              <div className="w-14 h-14 rounded-full bg-navy/5 flex items-center justify-center mx-auto mb-4">
+                <svg viewBox="0 0 24 24" className="w-7 h-7 fill-navy"><path d="M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-6 0h-4V4h4v2z"/></svg>
+              </div>
+              <h3 className="font-bold text-navy text-lg mb-1">Vagas & Contratação</h3>
+              <p className="text-sm text-gray mb-4">Envie seu currículo ou tire dúvidas</p>
+              <div className="space-y-3">
+                <a
+                  href="https://wa.me/5511954042488?text=Olá! Gostaria de informações sobre vagas disponíveis."
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 h-11 rounded-lg bg-[#25D366] text-white font-bold text-sm hover:bg-[#20BA5C] transition-all"
+                >
+                  <svg viewBox="0 0 24 24" className="w-5 h-5 fill-white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.955 9.955 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2z"/></svg>
+                  (11) 95404-2488
+                </a>
+                <a href="mailto:vagas@superacaorh.com.br" className="flex items-center justify-center gap-2 h-11 rounded-lg border border-navy text-navy font-bold text-sm hover:bg-navy hover:text-white transition-all">
+                  vagas@superacaorh.com.br
+                </a>
+              </div>
             </div>
-            <div>
-              <label htmlFor="mensagem" className="text-sm font-bold text-navy block mb-1.5">Mensagem</label>
-              <textarea id="mensagem" rows={4} className="w-full px-4 py-3 rounded-lg border border-line text-sm focus:outline-none focus:ring-2 focus:ring-gold/40 resize-vertical"></textarea>
-            </div>
-            <button type="submit" className="w-full h-12 rounded-lg bg-navy text-white font-bold hover:bg-navy-deep transition-all cursor-pointer">
-              Enviar mensagem
-            </button>
-          </form>
+          </div>
+
+          <p className="text-center text-sm text-gray mt-8">📍 São Paulo, SP</p>
         </div>
       </section>
 
