@@ -31,7 +31,8 @@ export default function CandidatosPage() {
       .select(`
         *,
         profile:profiles(full_name, email, phone),
-        skills:candidate_skills(skill_name)
+        skills:candidate_skills(skill_name),
+        applications(id, stage)
       `)
       .order("created_at", { ascending: false });
 
@@ -142,6 +143,7 @@ export default function CandidatosPage() {
                     <th className="text-left p-3 text-xs font-bold text-gray uppercase">Habilidades</th>
                     <th className="text-center p-3 text-xs font-bold text-gray uppercase">Pretensão</th>
                     <th className="text-center p-3 text-xs font-bold text-gray uppercase">Disponível</th>
+                    <th className="text-center p-3 text-xs font-bold text-gray uppercase">Processos</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -180,6 +182,42 @@ export default function CandidatosPage() {
                       </td>
                       <td className="p-3 text-center">
                         <span className="text-xs text-gray">{candidate.availability || "—"}</span>
+                      </td>
+                      <td className="p-3">
+                        {(() => {
+                          const apps = candidate.applications || [];
+                          const total = apps.length;
+                          const approved = apps.filter((a: any) => a.stage === "aprovado" || a.stage === "contratado").length;
+                          const rejected = apps.filter((a: any) => a.stage === "reprovado").length;
+                          const active = apps.filter((a: any) => !["reprovado", "desistente", "contratado"].includes(a.stage)).length;
+
+                          if (total === 0) return <span className="text-xs text-gray">—</span>;
+
+                          return (
+                            <div className="flex items-center justify-center gap-1.5">
+                              {total > 0 && (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-navy/10 text-navy text-xs font-bold" title="Total de processos">
+                                  <span className="w-2 h-2 rounded-full bg-navy"></span>{total}
+                                </span>
+                              )}
+                              {active > 0 && (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-gold/10 text-gold-dark text-xs font-bold" title="Em andamento">
+                                  <span className="w-2 h-2 rounded-full bg-gold"></span>{active}
+                                </span>
+                              )}
+                              {approved > 0 && (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-green/10 text-green text-xs font-bold" title="Aprovados">
+                                  <span className="w-2 h-2 rounded-full bg-green"></span>{approved}
+                                </span>
+                              )}
+                              {rejected > 0 && (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-100 text-red-600 text-xs font-bold" title="Reprovados">
+                                  <span className="w-2 h-2 rounded-full bg-red-500"></span>{rejected}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </td>
                     </tr>
                   ))}
