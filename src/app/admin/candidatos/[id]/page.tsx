@@ -6,11 +6,13 @@ import { createClient } from "@/lib/supabase/client";
 import DashboardHeader from "@/components/layout/DashboardHeader";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
-import { ArrowLeft, MapPin, Mail, Phone, Link2, Globe, Briefcase, GraduationCap, Loader2, FileText } from "lucide-react";
+import { ArrowLeft, MapPin, Mail, Phone, Link2, Globe, Briefcase, GraduationCap, Loader2, FileText, Edit, Trash2 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function CandidatoDetalhePage() {
   const { id } = useParams();
+  const router = useRouter();
   const supabase = createClient();
   const [candidate, setCandidate] = useState<any>(null);
   const [applications, setApplications] = useState<any[]>([]);
@@ -92,6 +94,27 @@ export default function CandidatoDetalhePage() {
     loadData();
   }
 
+  async function deleteCandidate() {
+    if (!confirm("Tem certeza que deseja excluir este candidato? Todos os dados serão removidos permanentemente.")) return;
+    try {
+      // Delete related data
+      await supabase.from("candidate_tags").delete().eq("candidate_id", id);
+      await supabase.from("internal_comments").delete().eq("candidate_id", id);
+      await supabase.from("applications").delete().eq("candidate_id", id);
+      await supabase.from("candidate_experiences").delete().eq("candidate_id", id);
+      await supabase.from("candidate_education").delete().eq("candidate_id", id);
+      await supabase.from("candidate_skills").delete().eq("candidate_id", id);
+      const profileId = candidate?.profile_id;
+      await supabase.from("candidates").delete().eq("id", id);
+      if (profileId) {
+        await supabase.from("profiles").delete().eq("id", profileId);
+      }
+      router.push("/admin/candidatos");
+    } catch (err) {
+      alert("Erro ao excluir candidato.");
+    }
+  }
+
   if (loading) {
     return (<><DashboardHeader title="Carregando..." subtitle="" /><div className="flex items-center justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-gray" /></div></>);
   }
@@ -115,6 +138,12 @@ export default function CandidatoDetalhePage() {
         <Link href="/admin/candidatos">
           <Button variant="ghost" size="sm"><ArrowLeft className="w-4 h-4" /> Voltar</Button>
         </Link>
+
+        <div className="flex items-center gap-3">
+          <Link href={`/admin/candidatos/${id}/editar`}>
+            <Button variant="ghost" size="sm"><Edit className="w-4 h-4" /> Editar</Button>
+          </Link>
+        </div>
 
         {/* Info principal */}
         <Card>
@@ -264,6 +293,15 @@ export default function CandidatoDetalhePage() {
               </div>
             ))}
           </div>
+        </Card>
+
+        {/* Zona de perigo */}
+        <Card>
+          <h3 className="font-bold text-red-600 mb-2 flex items-center gap-2"><Trash2 className="w-5 h-5" /> Zona de perigo</h3>
+          <p className="text-sm text-gray mb-4">Ações irreversíveis. Prossiga com cuidado.</p>
+          <Button variant="danger" size="sm" onClick={deleteCandidate}>
+            <Trash2 className="w-4 h-4" /> Excluir candidato
+          </Button>
         </Card>
       </div>
     </>

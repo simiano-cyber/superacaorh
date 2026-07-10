@@ -1,22 +1,9 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
 import { MapPin, Building2, Briefcase, Clock, Search } from "lucide-react";
-
-// Server component — busca dados sem autenticação
-async function getJobs() {
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
-
-  const { data } = await supabase
-    .from("jobs")
-    .select("id, title, description, city, state, work_model, contract_type, salary_range, created_at, partner:partners(company_name)")
-    .eq("status", "aberta")
-    .order("created_at", { ascending: false });
-
-  return data || [];
-}
 
 function timeAgo(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -28,8 +15,39 @@ function timeAgo(dateStr: string) {
   return `${Math.floor(days / 30)} meses atrás`;
 }
 
-export default async function VagasPublicasPage() {
-  const jobs = await getJobs();
+export default function VagasPublicasPage() {
+  const [jobs, setJobs] = useState<any[]>([]);
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchJobs() {
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
+
+      const { data } = await supabase
+        .from("jobs")
+        .select("id, title, description, city, state, work_model, contract_type, salary_range, created_at, partner:partners(company_name)")
+        .eq("status", "aberta")
+        .order("created_at", { ascending: false });
+
+      setJobs(data || []);
+      setLoading(false);
+    }
+    fetchJobs();
+  }, []);
+
+  const filteredJobs = jobs.filter((job) => {
+    if (!search.trim()) return true;
+    const term = search.toLowerCase();
+    return (
+      job.title?.toLowerCase().includes(term) ||
+      job.city?.toLowerCase().includes(term) ||
+      job.partner?.company_name?.toLowerCase().includes(term)
+    );
+  });
 
   return (
     <div className="min-h-screen bg-white">
@@ -59,21 +77,41 @@ export default async function VagasPublicasPage() {
           <p className="text-gray max-w-lg mx-auto">
             Confira as oportunidades disponíveis e candidate-se. Seu próximo desafio profissional pode estar aqui.
           </p>
-          <p className="text-sm text-gold-dark font-bold mt-4">{jobs.length} vagas disponíveis</p>
+          <p className="text-sm text-gold-dark font-bold mt-4">
+            {loading ? "Carregando..." : `${filteredJobs.length} vagas disponíveis`}
+          </p>
+        </div>
+      </section>
+
+      {/* Search */}
+      <section className="max-w-5xl mx-auto px-4 pt-6">
+        <div className="relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray" />
+          <input
+            type="text"
+            placeholder="Buscar por cargo, cidade ou empresa..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full h-12 pl-12 pr-4 rounded-xl border border-line bg-white text-sm focus:outline-none focus:ring-2 focus:ring-gold/40"
+          />
         </div>
       </section>
 
       {/* Lista de vagas */}
       <section className="max-w-5xl mx-auto px-4 py-8">
-        {jobs.length === 0 && (
+        {!loading && filteredJobs.length === 0 && (
           <div className="text-center py-16">
-            <p className="text-gray text-lg">Nenhuma vaga aberta no momento.</p>
-            <p className="text-sm text-gray mt-2">Cadastre-se para ser notificado quando novas vagas forem publicadas.</p>
+            <p className="text-gray text-lg">
+              {search ? "Nenhuma vaga encontrada para sua busca." : "Nenhuma vaga aberta no momento."}
+            </p>
+            <p className="text-sm text-gray mt-2">
+              {search ? "Tente buscar com outros termos." : "Cadastre-se para ser notificado quando novas vagas forem publicadas."}
+            </p>
           </div>
         )}
 
         <div className="space-y-4">
-          {jobs.map((job: any) => (
+          {filteredJobs.map((job: any) => (
             <div key={job.id} className="bg-white border border-line rounded-xl p-6 hover:shadow-md transition-shadow">
               <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                 <div className="flex-1">

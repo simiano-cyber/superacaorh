@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Search, Users, FileText, RefreshCw, ArrowRight } from "lucide-react";
 import WhatsAppButton from "@/components/WhatsAppButton";
+import AuthButtons from "@/components/AuthButtons";
 
 export default function Home() {
   return (
@@ -27,18 +28,7 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-3">
-            <Link
-              href="/login"
-              className="hidden sm:inline-flex items-center justify-center h-10 px-5 rounded-lg border border-navy text-navy text-sm font-bold hover:bg-navy hover:text-white transition-all"
-            >
-              Entrar
-            </Link>
-            <Link
-              href="/registro"
-              className="inline-flex items-center justify-center h-10 px-5 rounded-lg bg-navy text-white text-sm font-bold hover:bg-navy-deep transition-all"
-            >
-              Cadastre-se
-            </Link>
+            <AuthButtons />
           </div>
         </nav>
       </header>

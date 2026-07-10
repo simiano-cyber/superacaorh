@@ -6,12 +6,14 @@ import { createClient } from "@/lib/supabase/client";
 import DashboardHeader from "@/components/layout/DashboardHeader";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
-import { ArrowLeft, Edit, Pause, XCircle, Play, MapPin, Building2, Briefcase, Users, Loader2, Star, ChevronRight, Calendar } from "lucide-react";
+import { ArrowLeft, Edit, Pause, XCircle, Play, MapPin, Building2, Briefcase, Users, Loader2, Star, ChevronRight, Calendar, Copy, Trash2 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { Job } from "@/lib/types";
 
 export default function VagaDetalhePage() {
   const { id } = useParams();
+  const router = useRouter();
   const supabase = createClient();
   const [job, setJob] = useState<Job | null>(null);
   const [applications, setApplications] = useState<any[]>([]);
@@ -20,6 +22,8 @@ export default function VagaDetalhePage() {
   const [updating, setUpdating] = useState<string | null>(null);
   const [noteModal, setNoteModal] = useState<{ appId: string; action: "advance" | "reject"; nextStage?: any } | null>(null);
   const [note, setNote] = useState("");
+  const [duplicating, setDuplicating] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => { loadData(); }, [id]);
 
@@ -163,6 +167,65 @@ export default function VagaDetalhePage() {
     setUpdating(null); setNoteModal(null); setNote("");
   }
 
+  async function duplicateJob() {
+    if (!job) return;
+    setDuplicating(true);
+    try {
+      const { data: newJob, error } = await supabase
+        .from("jobs")
+        .insert({
+          title: `Cópia de ${job.title}`,
+          description: job.description,
+          requirements: job.requirements,
+          benefits: job.benefits,
+          salary_range: job.salary_range,
+          city: job.city,
+          state: job.state,
+          work_model: job.work_model,
+          contract_type: job.contract_type,
+          positions_count: job.positions_count,
+          partner_id: job.partner_id,
+          deadline: job.deadline,
+          status: "aberta",
+          created_by: job.created_by,
+        })
+        .select("id")
+        .single();
+
+      if (error || !newJob) throw error;
+
+      // Copy pipeline stages
+      const { data: pipeline } = await supabase
+        .from("job_pipeline")
+        .select("stage_id, position")
+        .eq("job_id", id);
+
+      if (pipeline && pipeline.length > 0) {
+        await supabase.from("job_pipeline").insert(
+          pipeline.map((p: any) => ({ job_id: newJob.id, stage_id: p.stage_id, position: p.position }))
+        );
+      }
+
+      router.push(`/admin/vagas/${newJob.id}`);
+    } catch (err) {
+      alert("Erro ao duplicar vaga.");
+      setDuplicating(false);
+    }
+  }
+
+  async function deleteJob() {
+    if (!confirm("Tem certeza que deseja excluir esta vaga? Esta ação não pode ser desfeita.")) return;
+    setDeleting(true);
+    try {
+      await supabase.from("job_pipeline").delete().eq("job_id", id);
+      await supabase.from("jobs").delete().eq("id", id);
+      router.push("/admin/vagas");
+    } catch (err) {
+      alert("Erro ao excluir vaga.");
+      setDeleting(false);
+    }
+  }
+
   async function updateJobStatus(status: "aberta" | "pausada" | "encerrada") {
     await supabase.from("jobs").update({ status }).eq("id", id);
     setJob(prev => prev ? { ...prev, status } : null);
@@ -190,6 +253,8 @@ export default function VagaDetalhePage() {
         <div className="flex flex-wrap items-center gap-3">
           <Link href="/admin/vagas"><Button variant="ghost" size="sm"><ArrowLeft className="w-4 h-4" /> Voltar</Button></Link>
           <Link href={`/admin/vagas/${id}/editar`}><Button variant="ghost" size="sm"><Edit className="w-4 h-4" /> Editar</Button></Link>
+          <Button variant="ghost" size="sm" onClick={duplicateJob} disabled={duplicating}><Copy className="w-4 h-4" /> {duplicating ? "Duplicando..." : "Duplicar"}</Button>
+          <Button variant="danger" size="sm" onClick={deleteJob} disabled={deleting}><Trash2 className="w-4 h-4" /> {deleting ? "Excluindo..." : "Excluir"}</Button>
           <div className="flex-1" />
           {job.status === "aberta" && <Button variant="ghost" size="sm" onClick={() => updateJobStatus("pausada")}><Pause className="w-4 h-4" /> Pausar</Button>}
           {job.status === "pausada" && <Button variant="ghost" size="sm" onClick={() => updateJobStatus("aberta")}><Play className="w-4 h-4" /> Reabrir</Button>}
