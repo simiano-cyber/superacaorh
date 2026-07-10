@@ -56,15 +56,17 @@ export default function CandidatoDetalhePage() {
     if (candidateTags) setTags(candidateTags);
 
     // Todas as tags
-    const { data: at } = await supabase.from("tags").select("*").order("name");
+    const { data: at, error: tagsError } = await supabase.from("tags").select("*").order("name");
+    console.log("Tags query:", { data: at, error: tagsError });
     if (at) setAllTags(at);
 
     // Comentários
-    const { data: comms } = await supabase
+    const { data: comms, error: commsError } = await supabase
       .from("internal_comments")
       .select("*, author:profiles(full_name)")
       .eq("candidate_id", id)
       .order("created_at", { ascending: false });
+    console.log("Comments query:", { data: comms, error: commsError });
     if (comms) setComments(comms);
 
     setLoading(false);
