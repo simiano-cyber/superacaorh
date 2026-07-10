@@ -224,8 +224,14 @@ export default function CandidatosPage() {
                 </tbody>
               </table>
             </div>
-            <p className="text-xs text-gray p-3 border-t border-line">
-              Mostrando {filtered.length} de {candidates.length} candidatos
+            <p className="text-xs text-gray p-3 border-t border-line flex items-center justify-between flex-wrap gap-2">
+              <span>Mostrando {filtered.length} de {candidates.length} candidatos</span>
+              <span className="flex items-center gap-3">
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-navy"></span><span>Total</span></span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-gold"></span><span>Ativo</span></span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green"></span><span>Aprovado</span></span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500"></span><span>Reprovado</span></span>
+              </span>
             </p>
           </Card>
         )}
