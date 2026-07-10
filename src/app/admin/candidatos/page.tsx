@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import DashboardHeader from "@/components/layout/DashboardHeader";
 import Card from "@/components/ui/Card";
-import { Search, Filter, MapPin, Mail, Loader2, Briefcase } from "lucide-react";
+import { Search, MapPin, Mail, Loader2, Briefcase, X, Phone } from "lucide-react";
 import Link from "next/link";
 
 export default function CandidatosPage() {
@@ -13,9 +13,17 @@ export default function CandidatosPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
-  useEffect(() => {
-    loadCandidates();
-  }, []);
+  // Filtros
+  const [filterCity, setFilterCity] = useState("");
+  const [filterSkill, setFilterSkill] = useState("");
+  const [filterAvailability, setFilterAvailability] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+
+  // Dados para os filtros
+  const [cities, setCities] = useState<string[]>([]);
+  const [skills, setSkills] = useState<string[]>([]);
+
+  useEffect(() => { loadCandidates(); }, []);
 
   async function loadCandidates() {
     const { data } = await supabase
@@ -27,7 +35,14 @@ export default function CandidatosPage() {
       `)
       .order("created_at", { ascending: false });
 
-    if (data) setCandidates(data);
+    if (data) {
+      setCandidates(data);
+      // Extrair cidades e skills únicas para os filtros
+      const uniqueCities = [...new Set(data.map(c => c.city).filter(Boolean))] as string[];
+      const uniqueSkills = [...new Set(data.flatMap(c => c.skills?.map((s: any) => s.skill_name) || []))] as string[];
+      setCities(uniqueCities.sort());
+      setSkills(uniqueSkills.sort());
+    }
     setLoading(false);
   }
 
@@ -35,92 +50,147 @@ export default function CandidatosPage() {
     const name = c.profile?.full_name?.toLowerCase() || "";
     const email = c.profile?.email?.toLowerCase() || "";
     const city = c.city?.toLowerCase() || "";
-    const skills = c.skills?.map((s: any) => s.skill_name.toLowerCase()).join(" ") || "";
+    const candidateSkills = c.skills?.map((s: any) => s.skill_name.toLowerCase()) || [];
     const q = search.toLowerCase();
-    return name.includes(q) || email.includes(q) || city.includes(q) || skills.includes(q);
+
+    const matchSearch = !q || name.includes(q) || email.includes(q) || city.includes(q) || candidateSkills.some((s: string) => s.includes(q));
+    const matchCity = !filterCity || c.city === filterCity;
+    const matchSkill = !filterSkill || candidateSkills.includes(filterSkill.toLowerCase());
+    const matchAvailability = !filterAvailability || c.availability?.toLowerCase().includes(filterAvailability.toLowerCase());
+
+    return matchSearch && matchCity && matchSkill && matchAvailability;
   });
+
+  const activeFilters = [filterCity, filterSkill, filterAvailability].filter(Boolean).length;
+
+  function clearFilters() {
+    setFilterCity(""); setFilterSkill(""); setFilterAvailability("");
+  }
 
   return (
     <>
       <DashboardHeader title="Candidatos" subtitle="Base de talentos cadastrados" />
 
       <div className="p-6 space-y-4">
+        {/* Toolbar */}
         <div className="flex gap-3">
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray" />
-            <input
-              type="text"
-              placeholder="Buscar por nome, habilidade, cidade..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full h-10 pl-10 pr-4 rounded-lg border border-line bg-white text-sm focus:outline-none focus:ring-2 focus:ring-gold/40"
-            />
+            <input type="text" placeholder="Buscar por nome, e-mail, habilidade, cidade..."
+              value={search} onChange={(e) => setSearch(e.target.value)}
+              className="w-full h-10 pl-10 pr-4 rounded-lg border border-line bg-white text-sm focus:outline-none focus:ring-2 focus:ring-gold/40" />
           </div>
+          <button onClick={() => setShowFilters(!showFilters)}
+            className={`h-10 px-4 rounded-lg border flex items-center gap-2 text-sm cursor-pointer transition-colors ${activeFilters > 0 ? "border-gold bg-gold/10 text-gold-dark font-bold" : "border-line bg-white text-gray hover:bg-soft"}`}>
+            Filtros {activeFilters > 0 && `(${activeFilters})`}
+          </button>
         </div>
 
-        {loading && (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-6 h-6 animate-spin text-gray" />
-          </div>
-        )}
-
-        {!loading && candidates.length === 0 && (
-          <Card className="text-center py-12">
-            <p className="text-gray">Nenhum candidato cadastrado ainda.</p>
+        {/* Painel de filtros */}
+        {showFilters && (
+          <Card padding="sm" className="border-gold/20">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm font-bold text-navy">Filtrar por:</span>
+              {activeFilters > 0 && (
+                <button onClick={clearFilters} className="text-xs text-gray hover:text-navy cursor-pointer flex items-center gap-1">
+                  <X className="w-3 h-3" /> Limpar
+                </button>
+              )}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <select value={filterCity} onChange={(e) => setFilterCity(e.target.value)}
+                className="h-9 px-3 rounded-lg border border-line bg-white text-sm focus:outline-none focus:ring-2 focus:ring-gold/40">
+                <option value="">Cidade (todas)</option>
+                {cities.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+              <select value={filterSkill} onChange={(e) => setFilterSkill(e.target.value)}
+                className="h-9 px-3 rounded-lg border border-line bg-white text-sm focus:outline-none focus:ring-2 focus:ring-gold/40">
+                <option value="">Habilidade (todas)</option>
+                {skills.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+              <select value={filterAvailability} onChange={(e) => setFilterAvailability(e.target.value)}
+                className="h-9 px-3 rounded-lg border border-line bg-white text-sm focus:outline-none focus:ring-2 focus:ring-gold/40">
+                <option value="">Disponibilidade (todas)</option>
+                <option value="imediata">Imediata</option>
+                <option value="30 dias">30 dias</option>
+                <option value="60 dias">60 dias</option>
+              </select>
+            </div>
           </Card>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filtered.map((candidate) => (
-            <Link key={candidate.id} href={`/admin/candidatos/${candidate.id}`}>
-            <Card className="hover:shadow-md transition-shadow cursor-pointer">
-              <div className="flex items-start gap-3 mb-3">
-                <div className="w-10 h-10 rounded-full bg-navy flex items-center justify-center text-white font-bold text-sm shrink-0">
-                  {candidate.profile?.full_name?.split(" ").map((n: string) => n[0]).join("").slice(0, 2) || "?"}
-                </div>
-                <div>
-                  <p className="font-bold text-navy text-sm">{candidate.profile?.full_name || "Sem nome"}</p>
-                  <p className="text-xs text-gray">{candidate.objective || "Sem objetivo definido"}</p>
-                </div>
-              </div>
+        {loading && <div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-gray" /></div>}
 
-              <div className="space-y-1.5 mb-3">
-                {candidate.city && (
-                  <div className="flex items-center gap-2 text-xs text-gray">
-                    <MapPin className="w-3 h-3" />
-                    {candidate.city}{candidate.state ? `, ${candidate.state}` : ""}
-                  </div>
-                )}
-                <div className="flex items-center gap-2 text-xs text-gray">
-                  <Mail className="w-3 h-3" />
-                  {candidate.profile?.email}
-                </div>
-                {candidate.salary_expectation && (
-                  <div className="flex items-center gap-2 text-xs text-gray">
-                    <Briefcase className="w-3 h-3" />
-                    R$ {Number(candidate.salary_expectation).toLocaleString("pt-BR")}
-                  </div>
-                )}
-              </div>
+        {!loading && candidates.length === 0 && (
+          <Card className="text-center py-12"><p className="text-gray">Nenhum candidato cadastrado.</p></Card>
+        )}
 
-              {candidate.skills && candidate.skills.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {candidate.skills.slice(0, 5).map((skill: any) => (
-                    <span key={skill.skill_name} className="px-2 py-0.5 bg-soft rounded text-xs font-medium text-navy">
-                      {skill.skill_name}
-                    </span>
+        {!loading && candidates.length > 0 && filtered.length === 0 && (
+          <Card className="text-center py-8"><p className="text-gray">Nenhum candidato encontrado com esses filtros.</p></Card>
+        )}
+
+        {/* Lista em tabela */}
+        {!loading && filtered.length > 0 && (
+          <Card padding="sm">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-line">
+                    <th className="text-left p-3 text-xs font-bold text-gray uppercase">Nome</th>
+                    <th className="text-left p-3 text-xs font-bold text-gray uppercase">E-mail</th>
+                    <th className="text-left p-3 text-xs font-bold text-gray uppercase">Cidade</th>
+                    <th className="text-left p-3 text-xs font-bold text-gray uppercase">Habilidades</th>
+                    <th className="text-center p-3 text-xs font-bold text-gray uppercase">Pretensão</th>
+                    <th className="text-center p-3 text-xs font-bold text-gray uppercase">Disponível</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((candidate) => (
+                    <tr key={candidate.id} className="border-b border-line last:border-0 hover:bg-soft/50 transition-colors">
+                      <td className="p-3">
+                        <Link href={`/admin/candidatos/${candidate.id}`} className="hover:text-gold-dark">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-navy flex items-center justify-center text-white text-xs font-bold shrink-0">
+                              {candidate.profile?.full_name?.split(" ").map((n: string) => n[0]).join("").slice(0, 2) || "?"}
+                            </div>
+                            <span className="font-semibold text-navy text-sm">{candidate.profile?.full_name || "Sem nome"}</span>
+                          </div>
+                        </Link>
+                      </td>
+                      <td className="p-3">
+                        <span className="text-sm text-gray">{candidate.profile?.email || "—"}</span>
+                      </td>
+                      <td className="p-3">
+                        <span className="text-sm text-gray">{candidate.city ? `${candidate.city}${candidate.state ? `, ${candidate.state}` : ""}` : "—"}</span>
+                      </td>
+                      <td className="p-3">
+                        <div className="flex flex-wrap gap-1">
+                          {candidate.skills?.slice(0, 3).map((s: any) => (
+                            <span key={s.skill_name} className="px-2 py-0.5 bg-soft rounded text-xs font-medium text-navy">{s.skill_name}</span>
+                          ))}
+                          {candidate.skills?.length > 3 && (
+                            <span className="px-2 py-0.5 bg-soft rounded text-xs text-gray">+{candidate.skills.length - 3}</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="p-3 text-center">
+                        <span className="text-sm text-gray">
+                          {candidate.salary_expectation ? `R$ ${Number(candidate.salary_expectation).toLocaleString("pt-BR")}` : "—"}
+                        </span>
+                      </td>
+                      <td className="p-3 text-center">
+                        <span className="text-xs text-gray">{candidate.availability || "—"}</span>
+                      </td>
+                    </tr>
                   ))}
-                  {candidate.skills.length > 5 && (
-                    <span className="px-2 py-0.5 bg-soft rounded text-xs text-gray">
-                      +{candidate.skills.length - 5}
-                    </span>
-                  )}
-                </div>
-              )}
-            </Card>
-            </Link>
-          ))}
-        </div>
+                </tbody>
+              </table>
+            </div>
+            <p className="text-xs text-gray p-3 border-t border-line">
+              Mostrando {filtered.length} de {candidates.length} candidatos
+            </p>
+          </Card>
+        )}
       </div>
     </>
   );
