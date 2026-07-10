@@ -52,12 +52,9 @@ export default function CandidatoVagaTimelinePage() {
     if (intv) setInterviews(intv);
 
     // Comentários internos
-    const { data: comms } = await supabase
-      .from("internal_comments")
-      .select("*, author:profiles(full_name)")
-      .eq("application_id", appId)
-      .order("created_at", { ascending: false });
-    if (comms) setComments(comms);
+    const commsRes = await fetch(`/api/admin/comments?applicationId=${appId}`);
+    const comms = await commsRes.json();
+    if (Array.isArray(comms)) setComments(comms);
 
     setLoading(false);
   }
@@ -65,12 +62,10 @@ export default function CandidatoVagaTimelinePage() {
   async function addComment() {
     if (!newComment.trim()) return;
     setSavingComment(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    await supabase.from("internal_comments").insert({
-      application_id: appId,
-      candidate_id: application?.candidate?.id,
-      author_id: user?.id,
-      content: newComment.trim(),
+    await fetch("/api/admin/comments", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ candidate_id: application?.candidate?.id, application_id: appId, content: newComment.trim() }),
     });
     setNewComment("");
     setSavingComment(false);

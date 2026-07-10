@@ -49,47 +49,44 @@ export default function CandidatoDetalhePage() {
     if (apps) setApplications(apps);
 
     // Tags do candidato
-    const { data: candidateTags } = await supabase
-      .from("candidate_tags")
-      .select("*, tag:tags(*)")
-      .eq("candidate_id", id);
-    if (candidateTags) setTags(candidateTags);
+    const tagsRes = await fetch(`/api/admin/tags?candidateId=${id}`);
+    const candidateTags = await tagsRes.json();
+    if (Array.isArray(candidateTags)) setTags(candidateTags);
 
     // Todas as tags
-    const { data: at, error: tagsError } = await supabase.from("tags").select("*").order("name");
-    console.log("Tags query:", { data: at, error: tagsError });
-    if (at) setAllTags(at);
+    const allTagsRes = await fetch("/api/admin/tags");
+    const at = await allTagsRes.json();
+    if (Array.isArray(at)) setAllTags(at);
 
     // Comentários
-    const { data: comms, error: commsError } = await supabase
-      .from("internal_comments")
-      .select("*, author:profiles(full_name)")
-      .eq("candidate_id", id)
-      .order("created_at", { ascending: false });
-    console.log("Comments query:", { data: comms, error: commsError });
-    if (comms) setComments(comms);
+    const commsRes = await fetch(`/api/admin/comments?candidateId=${id}`);
+    const comms = await commsRes.json();
+    if (Array.isArray(comms)) setComments(comms);
 
     setLoading(false);
   }
 
   async function addTag(tagId: string) {
-    await supabase.from("candidate_tags").insert({ candidate_id: id, tag_id: tagId });
+    await fetch("/api/admin/tags", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ candidate_id: id, tag_id: tagId }),
+    });
     loadData();
   }
 
   async function removeTag(candidateTagId: string) {
-    await supabase.from("candidate_tags").delete().eq("id", candidateTagId);
+    await fetch(`/api/admin/tags?id=${candidateTagId}`, { method: "DELETE" });
     setTags(tags.filter(t => t.id !== candidateTagId));
   }
 
   async function addComment() {
     if (!newComment.trim()) return;
     setSavingComment(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    await supabase.from("internal_comments").insert({
-      candidate_id: id,
-      author_id: user?.id,
-      content: newComment.trim(),
+    await fetch("/api/admin/comments", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ candidate_id: id, content: newComment.trim() }),
     });
     setNewComment("");
     setSavingComment(false);
