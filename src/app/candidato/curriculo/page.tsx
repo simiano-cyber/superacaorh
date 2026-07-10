@@ -7,6 +7,7 @@ import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import { Save, Plus, Trash2, Loader2, Upload, X } from "lucide-react";
+import { ESTADOS_BR, DISPONIBILIDADE_OPTIONS, maskPhone, maskCurrency, unmaskCurrency, unmaskPhone } from "@/lib/constants";
 
 export default function CurriculoPage() {
   const supabase = createClient();
@@ -62,7 +63,7 @@ export default function CurriculoPage() {
       setLinkedin(candidate.linkedin_url || "");
       setPortfolio(candidate.portfolio_url || "");
       setObjective(candidate.objective || "");
-      setSalary(candidate.salary_expectation?.toString() || "");
+      setSalary(candidate.salary_expectation ? maskCurrency(String(Math.round(candidate.salary_expectation * 100))) : "");
       setAvailability(candidate.availability || "");
       setResumeUrl(candidate.resume_url || "");
 
@@ -88,7 +89,7 @@ export default function CurriculoPage() {
       city: city || null, state: state || null,
       linkedin_url: linkedin || null, portfolio_url: portfolio || null,
       objective: objective || null,
-      salary_expectation: salary ? parseFloat(salary) : null,
+      salary_expectation: salary ? unmaskCurrency(salary) : null,
       availability: availability || null,
     }).eq("id", candidateId);
 
@@ -167,19 +168,44 @@ export default function CurriculoPage() {
         <Card>
           <h2 className="font-bold text-navy mb-4">Dados Pessoais</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input id="city" label="Cidade" value={city} onChange={(e) => setCity(e.target.value)} />
-            <Input id="state" label="Estado" value={state} onChange={(e) => setState(e.target.value)} />
-            <Input id="linkedin" label="LinkedIn" value={linkedin} onChange={(e) => setLinkedin(e.target.value)} />
-            <Input id="portfolio" label="Portfólio" value={portfolio} onChange={(e) => setPortfolio(e.target.value)} />
+            <div>
+              <label className="block text-sm font-bold text-navy mb-1.5">Estado</label>
+              <select value={state} onChange={(e) => { setState(e.target.value); setCity(""); }}
+                className="w-full h-11 px-4 rounded-lg border border-line bg-white text-sm focus:outline-none focus:ring-2 focus:ring-gold/40">
+                <option value="">Selecione o estado</option>
+                {ESTADOS_BR.map(e => <option key={e.uf} value={e.uf}>{e.nome}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-navy mb-1.5">Cidade</label>
+              <input type="text" value={city} onChange={(e) => setCity(e.target.value)} placeholder="Digite a cidade"
+                className="w-full h-11 px-4 rounded-lg border border-line bg-white text-sm focus:outline-none focus:ring-2 focus:ring-gold/40" />
+            </div>
+            <Input id="linkedin" label="LinkedIn" placeholder="https://linkedin.com/in/seu-perfil" value={linkedin} onChange={(e) => setLinkedin(e.target.value)} />
+            <Input id="portfolio" label="Portfólio / Site" placeholder="https://seusite.com" value={portfolio} onChange={(e) => setPortfolio(e.target.value)} />
           </div>
           <div className="mt-4">
             <label className="text-sm font-bold text-navy block mb-1.5">Objetivo profissional</label>
-            <textarea rows={3} value={objective} onChange={(e) => setObjective(e.target.value)}
+            <textarea rows={3} value={objective} onChange={(e) => setObjective(e.target.value)} placeholder="Descreva brevemente seu objetivo profissional..."
               className="w-full px-4 py-3 rounded-lg border border-line bg-white text-sm focus:outline-none focus:ring-2 focus:ring-gold/40 resize-vertical" />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-            <Input id="salary" label="Pretensão salarial (R$)" type="number" value={salary} onChange={(e) => setSalary(e.target.value)} />
-            <Input id="availability" label="Disponibilidade" value={availability} onChange={(e) => setAvailability(e.target.value)} />
+            <div>
+              <label className="block text-sm font-bold text-navy mb-1.5">Pretensão salarial mensal</label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-gray">R$</span>
+                <input type="text" value={salary} onChange={(e) => setSalary(maskCurrency(e.target.value))} placeholder="0,00"
+                  className="w-full h-11 pl-10 pr-4 rounded-lg border border-line bg-white text-sm focus:outline-none focus:ring-2 focus:ring-gold/40" />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-navy mb-1.5">Disponibilidade</label>
+              <select value={availability} onChange={(e) => setAvailability(e.target.value)}
+                className="w-full h-11 px-4 rounded-lg border border-line bg-white text-sm focus:outline-none focus:ring-2 focus:ring-gold/40">
+                <option value="">Selecione</option>
+                {DISPONIBILIDADE_OPTIONS.map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
+            </div>
           </div>
         </Card>
 
