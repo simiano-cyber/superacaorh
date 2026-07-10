@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import DashboardHeader from "@/components/layout/DashboardHeader";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
-import { Plus, Search, MapPin, Building2, MoreVertical, Loader2, X } from "lucide-react";
+import { Plus, Search, MoreVertical, Loader2, X, Edit, Copy, Pause, Play, XCircle, Trash2 } from "lucide-react";
 import type { Job } from "@/lib/types";
 import Link from "next/link";
 
@@ -21,6 +22,7 @@ export default function VagasPage() {
   const [partners, setPartners] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [openMenu, setOpenMenu] = useState<string | null>(null);
 
   // Filtros
   const [filterStatus, setFilterStatus] = useState("");
@@ -30,6 +32,47 @@ export default function VagasPage() {
   const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => { loadData(); }, []);
+
+  const router = useRouter();
+
+  async function quickAction(jobId: string, action: string) {
+    setOpenMenu(null);
+    if (action === "edit") {
+      router.push(`/admin/vagas/${jobId}/editar`);
+    } else if (action === "duplicate") {
+      const job = jobs.find(j => j.id === jobId);
+      if (!job) return;
+      const { data: newJob } = await supabase.from("jobs").insert({
+        title: `Cópia de ${job.title}`, description: job.description,
+        requirements: job.requirements, benefits: job.benefits,
+        salary_range: job.salary_range, city: job.city, state: job.state,
+        work_model: job.work_model, contract_type: job.contract_type,
+        positions_count: job.positions_count, partner_id: job.partner_id,
+        deadline: job.deadline, status: "aberta", created_by: job.created_by,
+      }).select("id").single();
+      if (newJob) {
+        const { data: pipeline } = await supabase.from("job_pipeline").select("stage_id, position").eq("job_id", jobId);
+        if (pipeline && pipeline.length > 0) {
+          await supabase.from("job_pipeline").insert(pipeline.map((p: any) => ({ job_id: newJob.id, stage_id: p.stage_id, position: p.position })));
+        }
+        loadData();
+      }
+    } else if (action === "pause") {
+      await supabase.from("jobs").update({ status: "pausada" }).eq("id", jobId);
+      loadData();
+    } else if (action === "resume") {
+      await supabase.from("jobs").update({ status: "aberta" }).eq("id", jobId);
+      loadData();
+    } else if (action === "close") {
+      await supabase.from("jobs").update({ status: "encerrada" }).eq("id", jobId);
+      loadData();
+    } else if (action === "delete") {
+      if (!confirm("Excluir esta vaga permanentemente?")) return;
+      await supabase.from("job_pipeline").delete().eq("job_id", jobId);
+      await supabase.from("jobs").delete().eq("id", jobId);
+      loadData();
+    }
+  }
 
   async function loadData() {
     setLoading(true);
@@ -193,12 +236,40 @@ export default function VagasPage() {
                       <td className="p-3 text-center">
                         <span className="text-xs text-gray">{new Date(job.created_at).toLocaleDateString("pt-BR")}</span>
                       </td>
-                      <td className="p-3">
-                        <Link href={`/admin/vagas/${job.id}`}>
-                          <button className="w-8 h-8 rounded-lg hover:bg-soft flex items-center justify-center cursor-pointer">
-                            <MoreVertical className="w-4 h-4 text-gray" />
-                          </button>
-                        </Link>
+                      <td className="p-3 relative">
+                        <button onClick={(e) => { e.stopPropagation(); setOpenMenu(openMenu === job.id ? null : job.id); }}
+                          className="w-8 h-8 rounded-lg hover:bg-soft flex items-center justify-center cursor-pointer">
+                          <MoreVertical className="w-4 h-4 text-gray" />
+                        </button>
+                        {openMenu === job.id && (
+                          <div className="absolute right-3 top-10 z-20 bg-white border border-line rounded-lg shadow-lg py-1 w-40">
+                            <button onClick={() => quickAction(job.id, "edit")} className="w-full px-4 py-2 text-left text-sm text-navy hover:bg-soft flex items-center gap-2 cursor-pointer">
+                              <Edit className="w-3.5 h-3.5" /> Editar
+                            </button>
+                            <button onClick={() => quickAction(job.id, "duplicate")} className="w-full px-4 py-2 text-left text-sm text-navy hover:bg-soft flex items-center gap-2 cursor-pointer">
+                              <Copy className="w-3.5 h-3.5" /> Duplicar
+                            </button>
+                            {job.status === "aberta" && (
+                              <button onClick={() => quickAction(job.id, "pause")} className="w-full px-4 py-2 text-left text-sm text-navy hover:bg-soft flex items-center gap-2 cursor-pointer">
+                                <Pause className="w-3.5 h-3.5" /> Pausar
+                              </button>
+                            )}
+                            {job.status === "pausada" && (
+                              <button onClick={() => quickAction(job.id, "resume")} className="w-full px-4 py-2 text-left text-sm text-navy hover:bg-soft flex items-center gap-2 cursor-pointer">
+                                <Play className="w-3.5 h-3.5" /> Reabrir
+                              </button>
+                            )}
+                            {job.status !== "encerrada" && (
+                              <button onClick={() => quickAction(job.id, "close")} className="w-full px-4 py-2 text-left text-sm text-gold-dark hover:bg-soft flex items-center gap-2 cursor-pointer">
+                                <XCircle className="w-3.5 h-3.5" /> Encerrar
+                              </button>
+                            )}
+                            <div className="border-t border-line my-1" />
+                            <button onClick={() => quickAction(job.id, "delete")} className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 cursor-pointer">
+                              <Trash2 className="w-3.5 h-3.5" /> Excluir
+                            </button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))}
