@@ -12,6 +12,7 @@ export default function CandidatosPage() {
   const [candidates, setCandidates] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [candidateTags, setCandidateTags] = useState<any[]>([]);
 
   // Filtros
   const [filterCity, setFilterCity] = useState("");
@@ -38,12 +39,17 @@ export default function CandidatosPage() {
 
     if (data) {
       setCandidates(data);
-      // Extrair cidades e skills únicas para os filtros
       const uniqueCities = [...new Set(data.map(c => c.city).filter(Boolean))] as string[];
       const uniqueSkills = [...new Set(data.flatMap(c => c.skills?.map((s: any) => s.skill_name) || []))] as string[];
       setCities(uniqueCities.sort());
       setSkills(uniqueSkills.sort());
     }
+
+    // Carregar tags por candidato via API
+    const tagsRes = await fetch("/api/admin/tags");
+    const allTagsData = await tagsRes.json();
+    if (Array.isArray(allTagsData)) setCandidateTags(allTagsData);
+
     setLoading(false);
   }
 
@@ -142,7 +148,6 @@ export default function CandidatosPage() {
                     <th className="text-left p-3 text-xs font-bold text-gray uppercase">Cidade</th>
                     <th className="text-left p-3 text-xs font-bold text-gray uppercase">Habilidades</th>
                     <th className="text-center p-3 text-xs font-bold text-gray uppercase">Pretensão</th>
-                    <th className="text-center p-3 text-xs font-bold text-gray uppercase">Disponível</th>
                     <th className="text-center p-3 text-xs font-bold text-gray uppercase">Processos</th>
                   </tr>
                 </thead>
@@ -176,12 +181,9 @@ export default function CandidatosPage() {
                         </div>
                       </td>
                       <td className="p-3 text-center">
-                        <span className="text-sm text-gray">
+                        <span className="text-xs text-gray">
                           {candidate.salary_expectation ? `R$ ${Number(candidate.salary_expectation).toLocaleString("pt-BR")}` : "—"}
                         </span>
-                      </td>
-                      <td className="p-3 text-center">
-                        <span className="text-xs text-gray">{candidate.availability || "—"}</span>
                       </td>
                       <td className="p-3">
                         {(() => {
@@ -194,27 +196,11 @@ export default function CandidatosPage() {
                           if (total === 0) return <span className="text-xs text-gray">—</span>;
 
                           return (
-                            <div className="flex items-center justify-center gap-1.5">
-                              {total > 0 && (
-                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-navy/10 text-navy text-xs font-bold" title="Total de processos">
-                                  <span className="w-2 h-2 rounded-full bg-navy"></span>{total}
-                                </span>
-                              )}
-                              {active > 0 && (
-                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-gold/10 text-gold-dark text-xs font-bold" title="Em andamento">
-                                  <span className="w-2 h-2 rounded-full bg-gold"></span>{active}
-                                </span>
-                              )}
-                              {approved > 0 && (
-                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-green/10 text-green text-xs font-bold" title="Aprovados">
-                                  <span className="w-2 h-2 rounded-full bg-green"></span>{approved}
-                                </span>
-                              )}
-                              {rejected > 0 && (
-                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-100 text-red-600 text-xs font-bold" title="Reprovados">
-                                  <span className="w-2 h-2 rounded-full bg-red-500"></span>{rejected}
-                                </span>
-                              )}
+                            <div className="flex items-center gap-1">
+                              <span className="w-5 h-5 rounded-full bg-navy/10 text-navy text-[10px] font-bold flex items-center justify-center" title="Total">{total}</span>
+                              {active > 0 && <span className="w-5 h-5 rounded-full bg-gold/20 text-gold-dark text-[10px] font-bold flex items-center justify-center" title="Ativo">{active}</span>}
+                              {approved > 0 && <span className="w-5 h-5 rounded-full bg-green/20 text-green text-[10px] font-bold flex items-center justify-center" title="Aprovado">{approved}</span>}
+                              {rejected > 0 && <span className="w-5 h-5 rounded-full bg-red-100 text-red-600 text-[10px] font-bold flex items-center justify-center" title="Reprovado">{rejected}</span>}
                             </div>
                           );
                         })()}
