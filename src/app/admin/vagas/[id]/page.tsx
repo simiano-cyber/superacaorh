@@ -319,7 +319,7 @@ export default function VagaDetalhePage() {
                       return (
                         <Card key={app.id} padding="sm" className="relative">
                           <div className="flex items-start justify-between mb-2">
-                            <Link href={`/admin/candidatos/${app.candidate?.id}`} className="flex items-center gap-2 hover:text-gold-dark">
+                            <Link href={`/admin/vagas/${id}/candidato/${app.id}`} className="flex items-center gap-2 hover:text-gold-dark">
                               <div className="w-8 h-8 rounded-full bg-navy flex items-center justify-center text-white text-xs font-bold">
                                 {profile?.full_name?.split(" ").map((n: string) => n[0]).join("").slice(0, 2) || "?"}
                               </div>
